@@ -23,7 +23,7 @@ func Line(x0, y0, x1, y1 float64, i *image.RGBA, c color.RGBA) {
 	dx := x1 - x0
 	dy := y1 - y0
 
-	derr := math.Abs(dy / float64(dx))
+	derr := math.Abs(dy) * 2
 	error := 0.0
 	y := y0
 
@@ -34,13 +34,13 @@ func Line(x0, y0, x1, y1 float64, i *image.RGBA, c color.RGBA) {
 			i.Set(int(x), int(y), c)
 		}
 		error += derr
-		if error > .5 {
+		if error > dx {
 			if y1 > y0 {
 				y += 1
 			} else {
 				y -= 1
 			}
-			error -= 1.
+			error -= dx * 2
 		}
 
 	}
