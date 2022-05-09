@@ -9,7 +9,7 @@ import (
 )
 
 type ObjData struct {
-	Vertices [][]float32
+	Vertices [][]float64
 	Faces    [][]int
 }
 
@@ -39,11 +39,11 @@ func Decode(path string) ObjData {
 			line := strings.Fields(s.Text())
 			if line[0] == "v" {
 				vstring := line[1:]
-				v, e := stringToFloat(vstring)
+				vcoords, e := stringToFloat(vstring)
 
 				check(e)
 
-				d.Vertices = append(d.Vertices, v)
+				d.Vertices = append(d.Vertices, vcoords)
 			}
 
 			if line[0] == "f" {
@@ -52,9 +52,8 @@ func Decode(path string) ObjData {
 				parsedfstring := make([]string, 0, len(fstring))
 
 				for _, fs := range fstring {
-					parsedfstring = append(parsedfstring, string(fs[0]))
+					parsedfstring = append(parsedfstring, strings.Split(string(fs), "/")[0])
 				}
-
 				f, e := stringToInt(parsedfstring)
 
 				check(e)
@@ -71,14 +70,14 @@ func Decode(path string) ObjData {
 	return d
 }
 
-func stringToFloat(arr []string) ([]float32, error) {
-	fa := make([]float32, 0, len(arr))
+func stringToFloat(arr []string) ([]float64, error) {
+	fa := make([]float64, 0, len(arr))
 	for _, a := range arr {
 		f, e := strconv.ParseFloat(a, 32)
 		if e != nil {
 			return fa, e
 		}
-		fa = append(fa, float32(f))
+		fa = append(fa, float64(f))
 	}
 
 	return fa, nil
