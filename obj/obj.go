@@ -2,13 +2,14 @@ package obj
 
 import (
 	"bufio"
+	"errors"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 )
 
-type ObjData struct {
+type Model struct {
 	Vertices [][]float64
 	Faces    [][]int
 }
@@ -19,55 +20,60 @@ func check(e error) {
 	}
 }
 
-func Decode(path string) ObjData {
+func Decode(path string) Model {
 	// Max capacity of the buffer. Pump up if .obj file is bigger
+
+	var geometryTypes = struct {
+		Vertex string
+		Face   string
+	}{
+		Vertex: "v",
+		Face:   "f",
+	}
 	const max = 512 * 1024
 
-	d := ObjData{}
+	model := Model{}
 
-	f, e := os.Open(path)
-	check(e)
-	defer f.Close()
+	file, err := os.Open(path)
+	check(err)
+	defer file.Close()
 
-	s := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(file)
 
-	b := make([]byte, max)
-	s.Buffer(b, max)
+	buffer := make([]byte, max)
+	scanner.Buffer(buffer, max)
 
-	for s.Scan() {
-		if len(s.Text()) != 0 {
-			line := strings.Fields(s.Text())
-			if line[0] == "v" {
-				vstring := line[1:]
-				vcoords, e := stringToFloat(vstring)
+	for scanner.Scan() {
+		// Check for empty lines
+		if len(scanner.Text()) != 0 {
+			// Split geometric data by its type and values
+			line := strings.Fields(scanner.Text())
+			dataType := line[0]
+			if dataType == geometryTypes.Vertex {
+				vertices, e := stringToFloat(line[1:])
 
 				check(e)
 
-				d.Vertices = append(d.Vertices, vcoords)
+				model.Vertices = append(model.Vertices, vertices)
 			}
 
-			if line[0] == "f" {
-				fstring := line[1:]
+			if dataType == geometryTypes.Face {
+				vi, e := parseFaces(line[1:])
 
-				parsedfstring := make([]string, 0, len(fstring))
-
-				for _, fs := range fstring {
-					parsedfstring = append(parsedfstring, strings.Split(string(fs), "/")[0])
+				if e != nil {
+					check(e)
 				}
-				f, e := stringToInt(parsedfstring)
 
-				check(e)
-
-				d.Faces = append(d.Faces, f)
+				model.Faces = append(model.Faces, vi)
 			}
 		}
 	}
 
-	if err := s.Err(); err != nil {
+	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
 
-	return d
+	return model
 }
 
 func stringToFloat(arr []string) ([]float64, error) {
@@ -83,15 +89,38 @@ func stringToFloat(arr []string) ([]float64, error) {
 	return fa, nil
 }
 
-func stringToInt(arr []string) ([]int, error) {
+func sliceStrToInt(arr []string) ([]int, error) {
 	fa := make([]int, 0, len(arr))
 	for _, a := range arr {
 		f, e := strconv.Atoi(a)
 		if e != nil {
 			return fa, e
 		}
-		fa = append(fa, int(f)-1)
+		fa = append(fa, int(f))
 	}
 
 	return fa, nil
+}
+
+func parseFaces(vNormalIndices []string) ([]int, error) {
+	vIndices := make([]string, 0, len(vNormalIndices))
+
+	for _, vn := range vNormalIndices {
+		vIndex := strings.Split(string(vn), "/")[0]
+		if string(vIndex[0]) == "/" {
+			return nil, errors.New("vNormalIndices have wrong formatting")
+		}
+		vIndices = append(vIndices, vIndex)
+	}
+
+	vi, e := sliceStrToInt(vIndices)
+
+	// Vertex indices are not 1-based so we must subtract 1 for every index
+	for i := 0; i < len(vi); i++ {
+		vi[i] = vi[i] - 1
+	}
+
+	check(e)
+
+	return vi, nil
 }
