@@ -21,8 +21,6 @@ func check(e error) {
 }
 
 func Decode(path string) Model {
-	// Max capacity of the buffer. Pump up if .obj file is bigger
-
 	var geometryTypes = struct {
 		Vertex string
 		Face   string
@@ -30,6 +28,8 @@ func Decode(path string) Model {
 		Vertex: "v",
 		Face:   "f",
 	}
+
+	// Max capacity of the buffer. Pump up if .obj file is bigger
 	const max = 512 * 1024
 
 	model := Model{}
@@ -89,38 +89,18 @@ func stringToFloat(arr []string) ([]float64, error) {
 	return fa, nil
 }
 
-func sliceStrToInt(arr []string) ([]int, error) {
-	fa := make([]int, 0, len(arr))
-	for _, a := range arr {
-		f, e := strconv.Atoi(a)
-		if e != nil {
-			return fa, e
-		}
-		fa = append(fa, int(f))
-	}
-
-	return fa, nil
-}
-
 func parseFaces(vNormalIndices []string) ([]int, error) {
-	vIndices := make([]string, 0, len(vNormalIndices))
+	vIndices := make([]int, 0, len(vNormalIndices))
 
 	for _, vn := range vNormalIndices {
 		vIndex := strings.Split(string(vn), "/")[0]
 		if string(vIndex[0]) == "/" {
 			return nil, errors.New("vNormalIndices have wrong formatting")
 		}
-		vIndices = append(vIndices, vIndex)
+		vi, _ := strconv.Atoi(vIndex)
+		// Vertex indices are not 1-based so we must subtract 1 for every index
+		vIndices = append(vIndices, vi-1)
 	}
 
-	vi, e := sliceStrToInt(vIndices)
-
-	// Vertex indices are not 1-based so we must subtract 1 for every index
-	for i := 0; i < len(vi); i++ {
-		vi[i] = vi[i] - 1
-	}
-
-	check(e)
-
-	return vi, nil
+	return vIndices, nil
 }
