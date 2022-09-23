@@ -5,18 +5,17 @@ import (
 	"image/color"
 	"math"
 	"sort"
-
-	"github.com/hekatx/go-renderer/obj"
 )
 
 type Point struct {
-	X float32
-	Y float32
+	X float64
+	Y float64
+	Z float64
 }
 
 type BarycentricCoordinates struct {
-	w1 float32
-	w2 float32
+	w1 float64
+	w2 float64
 }
 
 func Line(x0, y0, x1, y1 float64, i *image.RGBA, c color.RGBA) {
@@ -76,24 +75,6 @@ func NewImage(w, h int) *image.RGBA {
 	return img
 }
 
-func RenderWireframe(model obj.Model, width, height int, image *image.RGBA) {
-	white := color.RGBA{255, 255, 255, 0xff}
-	for i := 0; i < len(model.Faces); i++ {
-		face := model.Faces[i]
-		for j := 0; j < len(face); j++ {
-			v0 := model.Vertices[face[j]]
-			v1 := model.Vertices[face[(j+1)%len(face)]]
-
-			x0 := (v0.X + 1.) * float64(width) / 2.
-			y0 := (v0.Y + 1.) * float64(height) / 2.
-			x1 := (v1.X + 1.) * float64(width) / 2.
-			y1 := (v1.Y + 1.) * float64(height) / 2.
-
-			Line(x0, y0, x1, y1, image, white)
-		}
-	}
-}
-
 func getBarycentricCoords(p, a, b, c Point) BarycentricCoordinates {
 	var bc BarycentricCoordinates
 	h := c.Y - a.Y
@@ -102,8 +83,8 @@ func getBarycentricCoords(p, a, b, c Point) BarycentricCoordinates {
 	return bc
 }
 
-func isPointInsideTriangle(w1, w2 float64) bool {
-	return w1 >= 0 && w2 >= 0 && (w1+w2) <= 1.
+func isPointOutsideTriangle(w1, w2 float64) bool {
+	return w1 <= 0 || w2 <= 0 || (w1+w2) >= 1.
 }
 
 func Triangle(i *image.RGBA, c color.RGBA, v []Point) {
@@ -113,11 +94,13 @@ func Triangle(i *image.RGBA, c color.RGBA, v []Point) {
 
 	for y := 0; y < i.Bounds().Max.X; y++ {
 		for x := 0; x < i.Bounds().Max.Y; x++ {
-			ip := Point{float32(x), float32(y)}
-			bc := getBarycentricCoords(ip, v[2], v[0], v[1])
-			if isPointInsideTriangle(float64(bc.w1), float64(bc.w2)) {
-				i.Set(x, y, image.NewUniform(c))
+			bc := getBarycentricCoords(Point{float64(x), float64(y), 0.}, v[2], v[0], v[1])
+
+			if isPointOutsideTriangle(float64(bc.w1), float64(bc.w2)) {
+				continue
 			}
+
+			i.Set(x, y, image.NewUniform(c))
 		}
 	}
 }
