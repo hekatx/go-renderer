@@ -84,10 +84,10 @@ func RenderWireframe(model obj.Model, width, height int, image *image.RGBA) {
 			v0 := model.Vertices[face[j]]
 			v1 := model.Vertices[face[(j+1)%len(face)]]
 
-			x0 := (v0[0] + 1.) * float64(width) / 2.
-			y0 := (v0[1] + 1.) * float64(height) / 2.
-			x1 := (v1[0] + 1.) * float64(width) / 2.
-			y1 := (v1[1] + 1.) * float64(height) / 2.
+			x0 := (v0.X + 1.) * float64(width) / 2.
+			y0 := (v0.Y + 1.) * float64(height) / 2.
+			x1 := (v1.X + 1.) * float64(width) / 2.
+			y1 := (v1.Y + 1.) * float64(height) / 2.
 
 			Line(x0, y0, x1, y1, image, white)
 		}

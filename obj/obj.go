@@ -7,10 +7,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/deeean/go-vector/vector3"
 )
 
 type Model struct {
-	Vertices [][]float64
+	Vertices []vector3.Vector3
 	Faces    [][]int
 }
 
@@ -76,17 +78,17 @@ func Decode(path string) Model {
 	return model
 }
 
-func stringToFloat(arr []string) ([]float64, error) {
+func stringToFloat(arr []string) (vector3.Vector3, error) {
 	fa := make([]float64, 0, len(arr))
 	for _, a := range arr {
 		f, e := strconv.ParseFloat(a, 32)
 		if e != nil {
-			return fa, e
+			return *vector3.New(0, 0, 0), e
 		}
 		fa = append(fa, float64(f))
 	}
 
-	return fa, nil
+	return *vector3.New(fa[0], fa[1], fa[2]), nil
 }
 
 func parseFaces(vNormalIndices []string) ([]int, error) {
