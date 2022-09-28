@@ -1,7 +1,6 @@
 package render
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -32,11 +31,9 @@ func Model(model obj.Model, width, height int, image *image.RGBA, light_dir vect
 		n := calculateNormal(world_coords)
 		intensity := n.Dot(&light_dir)
 		c := color.RGBA{uint8(intensity * 255), uint8(intensity * 255), uint8(intensity * 255), 255}
-		fmt.Printf("coords are: %v\n", screen_coords)
-		tv := screen_coords
 
 		if intensity > 0 {
-			draw.Triangle(image, c, tv, &zbuffer, width, height)
+			draw.Triangle(image, c, screen_coords, &zbuffer, width, height)
 		}
 	}
 	flipVertically(image)
@@ -77,21 +74,4 @@ func flipVertically(canvas *image.RGBA) *image.RGBA {
 		}
 	}
 	return flipped
-}
-
-func getTriangleVertices(coords [3][2]float64) []vector3.Vector3 {
-	return []vector3.Vector3{
-		{
-			X: float64(coords[0][0]),
-			Y: float64(coords[0][1]),
-		},
-		{
-			X: float64(coords[1][0]),
-			Y: float64(coords[1][1]),
-		},
-		{
-			X: float64(coords[2][0]),
-			Y: float64(coords[2][1]),
-		},
-	}
 }

@@ -95,8 +95,8 @@ func getBarycentricCoords(p, a, b, c Point) BarycentricCoordinates {
 	return bc
 }
 
-func isPointOutsideTriangle(w1, w2 float64) bool {
-	return w1 <= 0 || w2 <= 0 || (w1+w2) >= 1.
+func isPointOutsideTriangle(w1, w2, w3 float64) bool {
+	return w1 < 0 || w2 < 0 || w3 < 0
 }
 
 func Triangle(i *image.RGBA, c color.RGBA, v [3]vector3.Vector3, zb *[]float64, w, h int) {
@@ -116,7 +116,7 @@ func Triangle(i *image.RGBA, c color.RGBA, v [3]vector3.Vector3, zb *[]float64, 
 		for p.Y = bboxmin.Y; p.Y < bboxmax.Y; p.Y++ {
 			bc := barycentric(v, p)
 
-			if bc.X < 0 || bc.Y < 0 || bc.Z < 0 {
+			if isPointOutsideTriangle(bc.X, bc.Y, bc.Z) {
 				continue
 			}
 
