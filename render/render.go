@@ -1,8 +1,10 @@
 package render
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"math"
 
 	"github.com/deeean/go-vector/vector3"
 	"github.com/hekatx/go-renderer/draw"
@@ -10,43 +12,37 @@ import (
 )
 
 func Model(model obj.Model, width, height int, image *image.RGBA, light_dir vector3.Vector3) {
-	var screen_coords [3][2]float64
+	var screen_coords [3]vector3.Vector3
 	var world_coords [3]vector3.Vector3
 
+	var zbuffer = make([]float64, width*height)
+	for i := 0; i < len(zbuffer); i++ {
+		zbuffer[i] = math.Inf(-1)
+	}
+
 	for i := 0; i < len(model.Faces); i++ {
-		face := model.Faces[i]
+		f := model.Faces[i]
+
 		for j := 0; j < 3; j++ {
-			v := model.Vertices[face[j]]
-			screen_coords[j] = [2]float64{(v.X + 1.) * float64(width) / 2., (v.Y + 1.) * float64(height) / 2.}
+			v := model.Vertices[f[j]]
+			screen_coords[j] = vector3.Vector3{X: float64(int((v.X+1.)*float64(width)/2. + .5)), Y: float64(int((v.Y+1.)*float64(height)/2. + .5)), Z: v.Z}
 			world_coords[j] = v
 		}
-		n := calculateNormal(world_coords[0], world_coords[1], world_coords[2])
 
+		n := calculateNormal(world_coords)
 		intensity := n.Dot(&light_dir)
-		color := color.RGBA{uint8(intensity * 255), uint8(intensity * 255), uint8(intensity * 255), 255}
-		triangle_vertices := []draw.Point{
-			{
-				X: float64(screen_coords[0][0]),
-				Y: float64(screen_coords[0][1]),
-			},
-			{
-				X: float64(screen_coords[1][0]),
-				Y: float64(screen_coords[1][1]),
-			},
-			{
-				X: float64(screen_coords[2][0]),
-				Y: float64(screen_coords[2][1]),
-			},
-		}
+		c := color.RGBA{uint8(intensity * 255), uint8(intensity * 255), uint8(intensity * 255), 255}
+		fmt.Printf("coords are: %v\n", screen_coords)
+		tv := screen_coords
 
 		if intensity > 0 {
-			draw.Triangle(image, color, triangle_vertices)
+			draw.Triangle(image, c, tv, &zbuffer, width, height)
 		}
 	}
 	flipVertically(image)
 }
 
-func RenderWireframe(model obj.Model, width, height int, image *image.RGBA) {
+func Wireframe(model obj.Model, width, height int, image *image.RGBA) {
 	white := color.RGBA{255, 255, 255, 0xff}
 	for i := 0; i < len(model.Faces); i++ {
 		face := model.Faces[i]
@@ -65,9 +61,9 @@ func RenderWireframe(model obj.Model, width, height int, image *image.RGBA) {
 	flipVertically(image)
 }
 
-func calculateNormal(a, b, c vector3.Vector3) vector3.Vector3 {
-	qr := c.Sub(&a)
-	qs := b.Sub(&a)
+func calculateNormal(pts [3]vector3.Vector3) vector3.Vector3 {
+	qr := pts[2].Sub(&pts[0])
+	qs := pts[1].Sub(&pts[0])
 	normal := qr.Cross(qs)
 	return *normal.Normalize()
 }
@@ -81,4 +77,21 @@ func flipVertically(canvas *image.RGBA) *image.RGBA {
 		}
 	}
 	return flipped
+}
+
+func getTriangleVertices(coords [3][2]float64) []vector3.Vector3 {
+	return []vector3.Vector3{
+		{
+			X: float64(coords[0][0]),
+			Y: float64(coords[0][1]),
+		},
+		{
+			X: float64(coords[1][0]),
+			Y: float64(coords[1][1]),
+		},
+		{
+			X: float64(coords[2][0]),
+			Y: float64(coords[2][1]),
+		},
+	}
 }

@@ -4,7 +4,9 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"sort"
+
+	"github.com/deeean/go-vector/vector2"
+	"github.com/deeean/go-vector/vector3"
 )
 
 type Point struct {
@@ -75,6 +77,16 @@ func NewImage(w, h int) *image.RGBA {
 	return img
 }
 
+func barycentric(pts [3]vector3.Vector3, P *vector3.Vector3) vector3.Vector3 {
+	v0 := vector3.Vector3{X: float64(pts[1].X - pts[0].X), Y: float64(pts[2].X - pts[0].X), Z: float64(pts[0].X - P.X)}
+	v1 := vector3.Vector3{X: float64(pts[1].Y - pts[0].Y), Y: float64(pts[2].Y - pts[0].Y), Z: float64(pts[0].Y - P.Y)}
+	u := v0.Cross(&v1)
+	if math.Abs(u.Z) > 1e-2 {
+		return vector3.Vector3{X: 1.0 - (u.X+u.Y)/u.Z, Y: u.X / u.Z, Z: u.Y / u.Z}
+	}
+	return vector3.Vector3{X: -1., Y: 1., Z: 1.}
+}
+
 func getBarycentricCoords(p, a, b, c Point) BarycentricCoordinates {
 	var bc BarycentricCoordinates
 	h := c.Y - a.Y
@@ -87,20 +99,33 @@ func isPointOutsideTriangle(w1, w2 float64) bool {
 	return w1 <= 0 || w2 <= 0 || (w1+w2) >= 1.
 }
 
-func Triangle(i *image.RGBA, c color.RGBA, v []Point) {
-	sort.Slice(v, func(i, j int) bool {
-		return v[i].Y < v[j].Y
-	})
+func Triangle(i *image.RGBA, c color.RGBA, v [3]vector3.Vector3, zb *[]float64, w, h int) {
+	bboxmin := vector2.Vector2{X: math.Inf(1), Y: math.Inf(1)}
+	bboxmax := vector2.Vector2{X: math.Inf(-1), Y: math.Inf(-1)}
+	clamp := vector2.Vector2{X: float64(w - 1), Y: float64(h - 1)}
 
-	for y := 0; y < i.Bounds().Max.X; y++ {
-		for x := 0; x < i.Bounds().Max.Y; x++ {
-			bc := getBarycentricCoords(Point{float64(x), float64(y), 0.}, v[2], v[0], v[1])
+	for i := 0; i < len(v); i++ {
+		bboxmin.X = math.Max(0.0, math.Min(bboxmin.X, float64(v[i].X)))
+		bboxmin.Y = math.Max(0.0, math.Min(bboxmin.Y, float64(v[i].Y)))
+		bboxmax.X = math.Min(clamp.X, math.Max(bboxmax.X, float64(v[i].X)))
+		bboxmax.Y = math.Min(clamp.Y, math.Max(bboxmax.Y, float64(v[i].Y)))
+	}
 
-			if isPointOutsideTriangle(float64(bc.w1), float64(bc.w2)) {
+	p := &vector3.Vector3{}
+	for p.X = bboxmin.X; p.X < bboxmax.X; p.X++ {
+		for p.Y = bboxmin.Y; p.Y < bboxmax.Y; p.Y++ {
+			bc := barycentric(v, p)
+
+			if bc.X < 0 || bc.Y < 0 || bc.Z < 0 {
 				continue
 			}
 
-			i.Set(x, y, image.NewUniform(c))
+			p.Z = (bc.X * v[0].Z) + (bc.Y * v[1].Z) + (bc.Z * v[2].Z)
+
+			if (*zb)[int(p.X+p.Y*float64(w))] < p.Z {
+				(*zb)[int(p.X+p.Y*float64(w))] = p.Z
+				i.Set(int(p.X), int(p.Y), image.NewUniform(c))
+			}
 		}
 	}
 }
