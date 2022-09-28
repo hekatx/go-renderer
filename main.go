@@ -22,7 +22,7 @@ func main() {
 	render.Model(head_model, width, height, base, *light_dir)
 
 	f, _ := os.Create("image.png")
-	err := png.Encode(f, base)
+	err := png.Encode(f, render.FlipVertically(base))
 
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "fucked up %v", err)

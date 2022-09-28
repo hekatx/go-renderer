@@ -36,7 +36,6 @@ func Model(model obj.Model, width, height int, image *image.RGBA, light_dir vect
 			draw.Triangle(image, c, screen_coords, &zbuffer, width, height)
 		}
 	}
-	flipVertically(image)
 }
 
 func Wireframe(model obj.Model, width, height int, image *image.RGBA) {
@@ -55,7 +54,6 @@ func Wireframe(model obj.Model, width, height int, image *image.RGBA) {
 			draw.Line(x0, y0, x1, y1, image, white)
 		}
 	}
-	flipVertically(image)
 }
 
 func calculateNormal(pts [3]vector3.Vector3) vector3.Vector3 {
@@ -65,7 +63,7 @@ func calculateNormal(pts [3]vector3.Vector3) vector3.Vector3 {
 	return *normal.Normalize()
 }
 
-func flipVertically(canvas *image.RGBA) *image.RGBA {
+func FlipVertically(canvas *image.RGBA) *image.RGBA {
 	bounds := canvas.Bounds()
 	flipped := image.NewRGBA(image.Rect(0, 0, bounds.Max.X, bounds.Max.Y))
 	for i := 0; i <= bounds.Max.X; i++ {
