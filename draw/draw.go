@@ -4,8 +4,8 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sort"
 
-	"github.com/deeean/go-vector/vector2"
 	"github.com/deeean/go-vector/vector3"
 )
 
@@ -77,7 +77,7 @@ func NewImage(w, h int) *image.RGBA {
 	return img
 }
 
-func barycentric(pts [3]vector3.Vector3, P *vector3.Vector3) vector3.Vector3 {
+func barycentric(pts []vector3.Vector3, P *vector3.Vector3) vector3.Vector3 {
 	v0 := vector3.Vector3{X: float64(pts[1].X - pts[0].X), Y: float64(pts[2].X - pts[0].X), Z: float64(pts[0].X - P.X)}
 	v1 := vector3.Vector3{X: float64(pts[1].Y - pts[0].Y), Y: float64(pts[2].Y - pts[0].Y), Z: float64(pts[0].Y - P.Y)}
 	u := v0.Cross(&v1)
@@ -99,22 +99,17 @@ func isPointOutsideTriangle(w1, w2, w3 float64) bool {
 	return w1 < 0 || w2 < 0 || w3 < 0
 }
 
-func Triangle(i *image.RGBA, c color.RGBA, v [3]vector3.Vector3, zb *[]float64, w, h int) {
-	bboxmin := vector2.Vector2{X: math.Inf(1), Y: math.Inf(1)}
-	bboxmax := vector2.Vector2{X: math.Inf(-1), Y: math.Inf(-1)}
-	clamp := vector2.Vector2{X: float64(w - 1), Y: float64(h - 1)}
+func Triangle(i *image.RGBA, c color.RGBA, v []vector3.Vector3, zb *[]float64, w, h int) {
+	sort.Slice(v, func(i, j int) bool {
+		return v[i].Y < v[j].Y
+	})
 
-	for i := 0; i < len(v); i++ {
-		bboxmin.X = math.Max(0.0, math.Min(bboxmin.X, float64(v[i].X)))
-		bboxmin.Y = math.Max(0.0, math.Min(bboxmin.Y, float64(v[i].Y)))
-		bboxmax.X = math.Min(clamp.X, math.Max(bboxmax.X, float64(v[i].X)))
-		bboxmax.Y = math.Min(clamp.Y, math.Max(bboxmax.Y, float64(v[i].Y)))
-	}
-
-	p := &vector3.Vector3{}
-	for p.X = bboxmin.X; p.X < bboxmax.X; p.X++ {
-		for p.Y = bboxmin.Y; p.Y < bboxmax.Y; p.Y++ {
-			bc := barycentric(v, p)
+	p := vector3.Vector3{}
+	for y := 0; y < i.Bounds().Max.Y; y++ {
+		for x := 0; x < i.Bounds().Max.X; x++ {
+			p.X = float64(x)
+			p.Y = float64(y)
+			bc := barycentric(v, &p)
 
 			if isPointOutsideTriangle(bc.X, bc.Y, bc.Z) {
 				continue

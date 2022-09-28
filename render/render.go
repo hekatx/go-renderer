@@ -11,7 +11,7 @@ import (
 )
 
 func Model(model obj.Model, width, height int, image *image.RGBA, light_dir vector3.Vector3) {
-	var screen_coords [3]vector3.Vector3
+	screen_coords := make([]vector3.Vector3, 3)
 	var world_coords [3]vector3.Vector3
 
 	var zbuffer = make([]float64, width*height)
