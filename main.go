@@ -17,9 +17,12 @@ func main() {
 	base := draw.NewImage(width, height)
 
 	head_model := obj.Decode("./african_head.obj")
+	textureReader, _ := os.Open("./african_head_diffuse.png")
+
+	texture, _ := png.Decode(textureReader)
 
 	light_dir := vector3.New(0., 0., -1.)
-	render.Model(head_model, width, height, base, *light_dir)
+	render.Model(head_model, width, height, base, *light_dir, &texture)
 
 	f, _ := os.Create("image.png")
 	err := png.Encode(f, render.FlipVertically(base))
